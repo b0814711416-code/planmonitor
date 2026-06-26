@@ -1,4 +1,4 @@
-import { PrismaClient, Category } from "@prisma/client";
+import { PrismaClient, Category, IncomeSource } from "@prisma/client";
 import { PrismaNeon } from "@prisma/adapter-neon";
 import * as dotenv from "dotenv";
 
@@ -11,66 +11,87 @@ const prisma = new PrismaClient({ adapter } as ConstructorParameters<typeof Pris
 
 async function main() {
   await prisma.expense.deleteMany();
-  await prisma.project.deleteMany();
+  await prisma.project.deleteMany(); // cascades to project_fundings
 
-  const projects = [
+  const projects: {
+    title: string;
+    category: Category;
+    fundings: { source: IncomeSource; allocated_budget: number }[];
+  }[] = [
     {
       title: "พัฒนาหลักสูตรสถานศึกษา",
-      category: "ACADEMIC" as Category,
-      allocated_budget: 50000,
+      category: "ACADEMIC",
+      // example of a project drawing from two income sources
+      fundings: [
+        { source: "ACTIVITY_FEE", allocated_budget: 30000 },
+        { source: "SCHOOL_REVENUE", allocated_budget: 20000 },
+      ],
     },
     {
       title: "ส่งเสริมการอ่านและการเขียน",
-      category: "ACADEMIC" as Category,
-      allocated_budget: 30000,
+      category: "ACADEMIC",
+      fundings: [{ source: "DEVELOPMENT_FEE", allocated_budget: 30000 }],
     },
     {
       title: "จัดซื้อสื่อการเรียนการสอน",
-      category: "ACADEMIC" as Category,
-      allocated_budget: 45000,
+      category: "ACADEMIC",
+      fundings: [
+        { source: "TEXTBOOK_FEE", allocated_budget: 25000 },
+        { source: "SUPPLIES_FEE", allocated_budget: 20000 },
+      ],
     },
     {
       title: "พัฒนาครูและบุคลากร",
-      category: "PERSONNEL" as Category,
-      allocated_budget: 60000,
+      category: "PERSONNEL",
+      fundings: [{ source: "SCHOOL_REVENUE", allocated_budget: 60000 }],
     },
     {
       title: "ส่งเสริมขวัญกำลังใจบุคลากร",
-      category: "PERSONNEL" as Category,
-      allocated_budget: 20000,
+      category: "PERSONNEL",
+      fundings: [{ source: "SCHOOL_REVENUE", allocated_budget: 20000 }],
     },
     {
       title: "วางแผนงบประมาณโรงเรียน",
-      category: "BUDGET" as Category,
-      allocated_budget: 15000,
+      category: "BUDGET",
+      fundings: [{ source: "SCHOOL_REVENUE", allocated_budget: 15000 }],
     },
     {
       title: "ตรวจสอบและติดตามงบประมาณ",
-      category: "BUDGET" as Category,
-      allocated_budget: 10000,
+      category: "BUDGET",
+      fundings: [{ source: "SCHOOL_REVENUE", allocated_budget: 10000 }],
     },
     {
       title: "ซ่อมบำรุงอาคารสถานที่",
-      category: "GENERAL" as Category,
-      allocated_budget: 80000,
+      category: "GENERAL",
+      fundings: [
+        { source: "PROJECT_SUBSIDY", allocated_budget: 50000 },
+        { source: "SCHOOL_REVENUE", allocated_budget: 30000 },
+      ],
     },
     {
       title: "จัดกิจกรรมวันสำคัญ",
-      category: "GENERAL" as Category,
-      allocated_budget: 35000,
+      category: "GENERAL",
+      fundings: [{ source: "ACTIVITY_FEE", allocated_budget: 35000 }],
     },
     {
       title: "บริหารจัดการสาธารณูปโภค",
-      category: "GENERAL" as Category,
-      allocated_budget: 40000,
+      category: "GENERAL",
+      fundings: [{ source: "SCHOOL_REVENUE", allocated_budget: 40000 }],
     },
   ];
 
   for (const proj of projects) {
-    const project = await prisma.project.create({ data: proj });
+    const budget = proj.fundings.reduce((s, f) => s + f.allocated_budget, 0);
+    const project = await prisma.project.create({
+      data: {
+        title: proj.title,
+        category: proj.category,
+        allocated_budget: budget,
+        fundings: { create: proj.fundings },
+      },
+    });
 
     const expenseCount = Math.floor(Math.random() * 3) + 1;
-    const budget = proj.allocated_budget;
     const usageRatio = 0.3 + Math.random() * 0.5;
     const totalExpense = budget * usageRatio;
 

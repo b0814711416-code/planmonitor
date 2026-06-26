@@ -88,13 +88,17 @@ export default async function ProjectDetailPage({
                 id={project.id}
                 title={project.title}
                 category={project.category}
-                income_source={project.income_source ?? null}
-                allocated_budget={allocated}
+                fundings={project.fundings.map((f) => ({
+                  source: f.source,
+                  allocated_budget: Number(f.allocated_budget),
+                }))}
               />
             </div>
-            <div className="flex items-center gap-2 mt-1.5">
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               <CategoryBadge category={project.category} />
-              <IncomeBadge source={project.income_source ?? null} />
+              {project.fundings.map((f) => (
+                <IncomeBadge key={f.id} source={f.source} />
+              ))}
               <span className="text-xs text-slate-400">
                 สร้างเมื่อ {formatDate(project.created_at)}
               </span>
@@ -103,7 +107,7 @@ export default async function ProjectDetailPage({
           <div className="flex items-center gap-2">
             <ActivityForm
               projectId={project.id}
-              projectIncomeSource={project.income_source ?? null}
+              projectIncomeSource={project.fundings[0]?.source ?? null}
             />
             <ExpenseForm
               projectId={project.id}

@@ -45,7 +45,7 @@ interface Project {
   id: string;
   title: string;
   category: string;
-  income_source: string | null;
+  fundings: { source: string; allocated_budget: number }[];
   allocated: number;
   disbursed: number;
   remaining: number;
@@ -105,8 +105,7 @@ function DraggableRow({ project }: { project: Project }) {
             id={project.id}
             title={project.title}
             category={project.category}
-            income_source={project.income_source}
-            allocated_budget={project.allocated}
+            fundings={project.fundings}
           />
           <DeleteProjectButton id={project.id} title={project.title} />
         </div>

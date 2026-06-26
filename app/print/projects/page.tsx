@@ -32,7 +32,7 @@ type ProjectRow = {
   id: string;
   title: string;
   category: string;
-  income_source: string | null;
+  sources: string[];
   allocated: number;
   disbursed: number;
   remaining: number;
@@ -63,7 +63,7 @@ export default async function PrintProjectsPage() {
       id: p.id,
       title: p.title,
       category: p.category as string,
-      income_source: p.income_source as string | null,
+      sources: p.fundings.map((f) => f.source as string),
       allocated,
       disbursed,
       remaining,
@@ -189,9 +189,10 @@ export default async function PrintProjectsPage() {
                       {CATEGORY_LABELS[row.category] ?? row.category}
                     </td>
                     <td className="cell-center cell-sm">
-                      {row.income_source
-                        ? (INCOME_LABELS[row.income_source] ??
-                          row.income_source)
+                      {row.sources.length > 0
+                        ? row.sources
+                            .map((s) => INCOME_LABELS[s] ?? s)
+                            .join(", ")
                         : "-"}
                     </td>
                     <td className="cell-right">

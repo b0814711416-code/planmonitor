@@ -12,6 +12,7 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:seed": "ts-node --project tsconfig.json -e require('ts-node/register') prisma/seed.ts",
+    "db:migrate-fundings": "npx ts-node prisma/migrate-fundings.ts",
     "db:studio": "prisma studio"
   },
   "prisma": {

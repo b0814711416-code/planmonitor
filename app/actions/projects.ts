@@ -8,6 +8,7 @@ export async function getProjects() {
   return prisma.project.findMany({
     include: {
       expenses: true,
+      fundings: true,
     },
     orderBy: { created_at: "desc" },
   });
@@ -17,6 +18,7 @@ export async function getProjectById(id: string) {
   return prisma.project.findUnique({
     where: { id },
     include: {
+      fundings: true,
       activities: {
         orderBy: { created_at: "asc" },
         include: {
@@ -35,22 +37,44 @@ export async function getProjectById(id: string) {
   });
 }
 
+export type FundingInput = {
+  source: IncomeSource;
+  allocated_budget: number;
+};
+
+// Collapse duplicate sources and drop empty lines; the project's total budget
+// is always the sum of its funding lines.
+function normalizeFundings(fundings: FundingInput[]): FundingInput[] {
+  const bySource = new Map<IncomeSource, number>();
+  for (const f of fundings) {
+    if (!f.source) continue;
+    bySource.set(f.source, (bySource.get(f.source) ?? 0) + (f.allocated_budget || 0));
+  }
+  return [...bySource.entries()].map(([source, allocated_budget]) => ({
+    source,
+    allocated_budget,
+  }));
+}
+
 export async function createProject(data: {
   title: string;
   category: Category;
-  income_source?: IncomeSource | null;
-  allocated_budget: number;
+  fundings: FundingInput[];
 }) {
+  const fundings = normalizeFundings(data.fundings);
+  const total = fundings.reduce((s, f) => s + f.allocated_budget, 0);
+
   const project = await prisma.project.create({
     data: {
       title: data.title,
       category: data.category,
-      income_source: data.income_source ?? null,
-      allocated_budget: data.allocated_budget,
+      allocated_budget: total,
+      fundings: { create: fundings },
     },
   });
   revalidatePath("/");
   revalidatePath("/projects");
+  revalidatePath("/income");
   return project;
 }
 
@@ -59,18 +83,36 @@ export async function updateProject(
   data: {
     title?: string;
     category?: Category;
-    income_source?: IncomeSource | null;
-    allocated_budget?: number;
+    fundings?: FundingInput[];
   }
 ) {
-  const project = await prisma.project.update({
-    where: { id },
-    data,
-  });
+  // When funding lines are provided, replace them wholesale and recompute the
+  // total budget. Category-only updates (e.g. drag-and-drop) skip this branch.
+  if (data.fundings) {
+    const fundings = normalizeFundings(data.fundings);
+    const total = fundings.reduce((s, f) => s + f.allocated_budget, 0);
+    await prisma.$transaction([
+      prisma.projectFunding.deleteMany({ where: { project_id: id } }),
+      prisma.project.update({
+        where: { id },
+        data: {
+          title: data.title,
+          category: data.category,
+          allocated_budget: total,
+          fundings: { create: fundings },
+        },
+      }),
+    ]);
+  } else {
+    await prisma.project.update({
+      where: { id },
+      data: { title: data.title, category: data.category },
+    });
+  }
   revalidatePath("/");
   revalidatePath("/projects");
+  revalidatePath("/income");
   revalidatePath(`/projects/${id}`);
-  return project;
 }
 
 export async function deleteProject(id: string) {

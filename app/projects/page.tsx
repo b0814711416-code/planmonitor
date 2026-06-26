@@ -19,7 +19,10 @@ export default async function ProjectsPage() {
         id: p.id,
         title: p.title,
         category: p.category,
-        income_source: p.income_source ?? null,
+        fundings: p.fundings.map((f) => ({
+          source: f.source as string,
+          allocated_budget: Number(f.allocated_budget),
+        })),
         allocated,
         disbursed,
         remaining,

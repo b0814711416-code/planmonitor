@@ -17,7 +17,7 @@ import {
 const CATEGORY_ORDER: CategoryKey[] = ["ACADEMIC", "PERSONNEL", "BUDGET", "GENERAL"];
 import { IncomeEstimateForm } from "@/components/income-estimate-form";
 import { Card, CardContent } from "@/components/ui/card";
-import { Banknote, TrendingDown, PiggyBank, LayoutList, FolderOpen, Layers } from "lucide-react";
+import { Banknote, TrendingDown, PiggyBank, LayoutList, FolderOpen } from "lucide-react";
 import Link from "next/link";
 
 export default async function IncomePage() {
@@ -131,17 +131,10 @@ export default async function IncomePage() {
                                 className={`flex items-center justify-between text-xs text-slate-500 rounded-lg px-3 py-1.5 ${INCOME_SOURCE_ITEM_BG[key]}`}
                               >
                                 <div className="flex items-center gap-1.5 min-w-0">
-                                  {item.type === "project" ? (
-                                    <FolderOpen size={12} className="text-slate-400 shrink-0" />
-                                  ) : (
-                                    <Layers size={12} className="text-slate-400 shrink-0" />
-                                  )}
+                                  <FolderOpen size={12} className="text-slate-400 shrink-0" />
                                   <span className="truncate">
-                                    {item.type === "activity" && item.parentTitle && (
-                                      <span className="text-slate-400">{item.parentTitle} · </span>
-                                    )}
                                     <Link
-                                      href={`/projects/${item.type === "project" ? item.id : (item.parentId ?? "")}`}
+                                      href={`/projects/${item.id}`}
                                       className="text-slate-700 hover:text-slate-900 hover:underline"
                                     >
                                       {item.title}

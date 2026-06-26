@@ -30,94 +30,77 @@ export async function upsertIncomeEstimate(
 }
 
 export async function getIncomeStats() {
-  const estimates = await prisma.incomeEstimate.findMany({
-    include: {
-      projects: {
-        include: {
-          expenses: true,
-          activities: { include: { expenses: true } },
-        },
+  const [estimates, allProjects] = await Promise.all([
+    prisma.incomeEstimate.findMany(),
+    prisma.project.findMany({
+      include: {
+        fundings: true,
+        expenses: true,
+        activities: { include: { expenses: true } },
       },
-      activities: { include: { expenses: true } },
-    },
-  });
+    }),
+  ]);
 
-  const allProjects = await prisma.project.findMany({
-    include: {
-      expenses: true,
-      activities: { include: { expenses: true } },
-    },
-  });
-
+  // Total disbursed per project (project-level expenses + all activity expenses).
+  // Since expenses aren't tagged to a specific source, a project's disbursement
+  // is attributed to each of its funding sources proportionally to that source's
+  // share of the project's total funded budget.
   return INCOME_SOURCE_ORDER.map((source) => {
     const est = estimates.find((e) => e.source === source);
     const estimated = Number(est?.estimated_amount ?? 0);
 
-    // projects with this income source
-    const linkedProjects = allProjects.filter((p) => p.income_source === source);
-    const allocated = linkedProjects.reduce(
-      (s, p) => s + Number(p.allocated_budget),
-      0
-    );
-    const disbursed = linkedProjects.reduce((s, p) => {
-      const projExp = p.expenses.reduce((x, e) => x + Number(e.amount), 0);
-      // exclude activity expenses that have a different income_source override
-      // (those are counted under their own income source instead)
-      const actExp = p.activities
-        .filter((act) => !act.income_source || act.income_source === source)
-        .reduce((a, act) => a + act.expenses.reduce((x, e) => x + Number(e.amount), 0), 0);
-      return s + projExp + actExp;
-    }, 0);
+    let allocated = 0;
+    let disbursed = 0;
+    const items: {
+      id: string;
+      title: string;
+      allocated_budget: number;
+      type: "project";
+      category: string;
+      parentTitle: string | null;
+      parentId: string | null;
+    }[] = [];
 
-    // activities that override income source — only those whose parent project
-    // has a DIFFERENT income source (to avoid double-counting project budget)
-    const linkedActivities = allProjects
-      .flatMap((p) => p.activities.map((a) => ({ ...a, _parentSource: p.income_source })))
-      .filter((a) => a.income_source === source && a._parentSource !== source);
-    const actAllocated = linkedActivities.reduce(
-      (s, a) => s + Number(a.allocated_budget),
-      0
-    );
-    const actDisbursed = linkedActivities.reduce(
-      (s, a) => s + a.expenses.reduce((x, e) => x + Number(e.amount), 0),
-      0
-    );
+    for (const p of allProjects) {
+      const funding = p.fundings.find((f) => f.source === source);
+      if (!funding) continue;
 
-    const totalAllocated = allocated + actAllocated;
-    const totalDisbursed = disbursed + actDisbursed;
-
-    const projectItems = linkedProjects.map((p) => ({
-      id: p.id,
-      title: p.title,
-      allocated_budget: Number(p.allocated_budget),
-      type: "project" as const,
-      category: p.category,
-      parentTitle: null as string | null,
-      parentId: null as string | null,
-    }));
-
-    const activityItems = linkedActivities.map((a) => {
-      const parent = allProjects.find((p) =>
-        p.activities.some((act) => act.id === a.id)
+      const fundedHere = Number(funding.allocated_budget);
+      const projectTotal = p.fundings.reduce(
+        (s, f) => s + Number(f.allocated_budget),
+        0
       );
-      return {
-        id: a.id,
-        title: a.title,
-        allocated_budget: Number(a.allocated_budget),
-        type: "activity" as const,
-        category: parent?.category ?? ("GENERAL" as string),
-        parentTitle: parent?.title ?? null,
-        parentId: parent?.id ?? null,
-      };
-    });
+
+      const projDisbursed =
+        p.expenses.reduce((x, e) => x + Number(e.amount), 0) +
+        p.activities.reduce(
+          (a, act) => a + act.expenses.reduce((x, e) => x + Number(e.amount), 0),
+          0
+        );
+
+      const share = projectTotal > 0 ? fundedHere / projectTotal : 0;
+
+      allocated += fundedHere;
+      disbursed += projDisbursed * share;
+
+      items.push({
+        id: p.id,
+        title: p.title,
+        allocated_budget: fundedHere,
+        type: "project",
+        category: p.category,
+        parentTitle: null,
+        parentId: null,
+      });
+    }
 
     return {
       source,
       estimated,
-      allocated: totalAllocated,
-      disbursed: totalDisbursed,
-      remaining: estimated - totalAllocated,
-      items: [...projectItems, ...activityItems],
+      allocated,
+      disbursed,
+      remaining: estimated - allocated,
+      items,
     };
   });
 }

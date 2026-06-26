@@ -18,34 +18,38 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CATEGORIES, INCOME_SOURCES } from "@/lib/constants";
+import { CATEGORIES } from "@/lib/constants";
+import { FundingFields, rowsToFundings, type FundingRow } from "@/components/funding-fields";
 import { createProject } from "@/app/actions/projects";
 import { Plus } from "lucide-react";
+
+const emptyFundings: FundingRow[] = [{ source: "", amount: "" }];
 
 export function ProjectForm() {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [form, setForm] = useState({
-    title: "",
-    category: "",
-    income_source: "",
-    allocated_budget: "",
-  });
+  const [form, setForm] = useState({ title: "", category: "" });
+  const [fundings, setFundings] = useState<FundingRow[]>(emptyFundings);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.title || !form.category || !form.allocated_budget) return;
+    const payload = rowsToFundings(fundings);
+    if (!form.title || !form.category) return;
+    if (payload.length === 0) {
+      toast.error("กรุณาเลือกแหล่งเงินอย่างน้อย 1 แหล่ง");
+      return;
+    }
 
     startTransition(async () => {
       try {
         await createProject({
           title: form.title,
           category: form.category as "ACADEMIC" | "PERSONNEL" | "BUDGET" | "GENERAL",
-          income_source: form.income_source as Parameters<typeof createProject>[0]["income_source"] || null,
-          allocated_budget: parseFloat(form.allocated_budget),
+          fundings: payload,
         });
         toast.success("เพิ่มโครงการสำเร็จ");
-        setForm({ title: "", category: "", income_source: "", allocated_budget: "" });
+        setForm({ title: "", category: "" });
+        setFundings(emptyFundings);
         setOpen(false);
       } catch {
         toast.error("เกิดข้อผิดพลาด กรุณาลองใหม่");
@@ -98,39 +102,7 @@ export function ProjectForm() {
               </Select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="income_source">
-                แหล่งรายรับ
-                <span className="text-slate-400 font-normal ml-1">(ไม่บังคับ)</span>
-              </Label>
-              <Select
-                value={form.income_source}
-                onValueChange={(v) => setForm({ ...form, income_source: v ?? "" })}
-              >
-                <SelectTrigger id="income_source" className="w-full">
-                  <SelectValue placeholder="เลือกแหล่งรายรับ" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(INCOME_SOURCES).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="budget">งบประมาณที่จัดสรร (บาท)</Label>
-              <Input
-                id="budget"
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                value={form.allocated_budget}
-                onChange={(e) => setForm({ ...form, allocated_budget: e.target.value })}
-                required
-              />
-            </div>
+            <FundingFields value={fundings} onChange={setFundings} />
 
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)}>
