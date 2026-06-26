@@ -3,11 +3,12 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
 import { Toaster } from "@/components/ui/sonner";
+import { SCHOOL_NAME } from "@/lib/constants";
 
 const geist = Geist({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ระบบติดตามแผนงานโครงการ | โรงเรียนบ้านไชยสอ",
+  title: `ระบบติดตามแผนงานโครงการ | ${SCHOOL_NAME}`,
   description: "ระบบจัดสรรและติดตามงบประมาณแผนปฏิบัติการประจำปี",
 };
 

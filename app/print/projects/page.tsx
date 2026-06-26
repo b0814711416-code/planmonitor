@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { getProjects } from "@/app/actions/projects";
 import { formatCurrency } from "@/lib/utils";
+import { SCHOOL_NAME } from "@/lib/constants";
 import { PrintButton } from "./print-button";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -141,7 +142,7 @@ export default async function PrintProjectsPage() {
           <p className="gov-title-main">
             แบบรายงานสรุปผลการดำเนินงานตามแผนปฏิบัติการ
           </p>
-          <p className="gov-school-name">โรงเรียนบ้านไชยสอ</p>
+          <p className="gov-school-name">{SCHOOL_NAME}</p>
           <p className="gov-subtitle">ประจำปีงบประมาณ พ.ศ. ๒๕๖๙</p>
           <p className="gov-date">ณ วันที่ {printDate}</p>
         </div>

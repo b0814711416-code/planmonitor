@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { getDashboardStats } from "@/app/actions/projects";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { CATEGORIES, CATEGORY_COLORS, type CategoryKey } from "@/lib/constants";
+import { CATEGORIES, CATEGORY_COLORS, SCHOOL_NAME, type CategoryKey } from "@/lib/constants";
 import { CategoryBadge } from "@/components/category-badge";
 import { BudgetProgress } from "@/components/budget-progress";
 import {
@@ -61,7 +61,7 @@ export default async function DashboardPage() {
       <div>
         <h1 className="text-2xl font-semibold text-slate-900">ภาพรวมงบประมาณ</h1>
         <p className="text-sm text-slate-500 mt-1">
-          ปีงบประมาณ 2569 — โรงเรียนบ้านไชยสอ
+          ปีงบประมาณ 2569 — {SCHOOL_NAME}
         </p>
       </div>
 

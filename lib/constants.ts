@@ -1,3 +1,8 @@
+// School name shown across the app. Set NEXT_PUBLIC_SCHOOL_NAME per deployment
+// (e.g. "โรงเรียนบ้านหนองสังข์"); defaults to บ้านไชยสอ.
+export const SCHOOL_NAME =
+  process.env.NEXT_PUBLIC_SCHOOL_NAME ?? "โรงเรียนบ้านไชยสอ";
+
 export const INCOME_SOURCES = {
   ACTIVITY_FEE:    "ค่ากิจกรรมการเรียนการสอน",
   UNIFORM_FEE:     "ค่าเครื่องแบบ",

@@ -71,11 +71,17 @@ async function main() {
   `);
   console.log(`✓ Created ${result} funding line(s) from legacy income_source.`);
 
-  // 3) Drop the legacy column + its FK now that data is preserved.
-  await prisma.$executeRawUnsafe(
-    `ALTER TABLE projects DROP COLUMN IF EXISTS income_source;`
-  );
-  console.log("✓ Dropped projects.income_source.");
+  // 3) Drop the legacy column only when explicitly requested. The new code
+  //    ignores this column, so it is safe to leave in place; keeping it means
+  //    the old deployment keeps working until the new one goes live.
+  if (process.env.DROP_LEGACY === "1") {
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE projects DROP COLUMN IF EXISTS income_source;`
+    );
+    console.log("✓ Dropped projects.income_source.");
+  } else {
+    console.log("• Kept projects.income_source (set DROP_LEGACY=1 to drop).");
+  }
 }
 
 main()

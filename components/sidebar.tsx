@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, FolderOpen, School, Banknote } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SCHOOL_NAME } from "@/lib/constants";
 
 const navItems = [
   { href: "/", label: "ภาพรวม", icon: LayoutDashboard },
@@ -23,7 +24,7 @@ export function Sidebar() {
           </div>
           <div>
             <p className="text-xs font-semibold text-slate-900 leading-tight">
-              โรงเรียนบ้านไชยสอ
+              {SCHOOL_NAME}
             </p>
             <p className="text-[10px] text-slate-400 leading-tight">
               ระบบติดตามแผนงาน
