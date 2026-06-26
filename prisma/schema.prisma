@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Category {
+  ACADEMIC      // กลุ่มงานวิชาการ
+  PERSONNEL     // กลุ่มบริหารงานบุคคล
+  BUDGET        // กลุ่มบริหารงานงบประมาณ
+  GENERAL       // กลุ่มบริหารงานทั่วไป
+}
+
+enum IncomeSource {
+  ACTIVITY_FEE      // ค่ากิจกรรมการเรียนการสอน
+  UNIFORM_FEE       // ค่าเครื่องแบบ
+  TEXTBOOK_FEE      // ค่าหนังสือเรียน
+  SUPPLIES_FEE      // ค่าอุปกรณ์การเรียน
+  DEVELOPMENT_FEE   // ค่ากิจกรรมพัฒนาผู้เรียน
+  LUNCH_SUBSIDY     // ค่าอาหารกลางวัน อบต.
+  PROJECT_SUBSIDY   // เงินโครงการ อบต.
+  SCHOOL_REVENUE    // เงินรายได้สถานศึกษา
+}
+
+model IncomeEstimate {
+  id               String       @id @default(uuid())
+  source           IncomeSource @unique
+  estimated_amount Decimal      @db.Decimal(12, 2) @default(0)
+  created_at       DateTime     @default(now())
+  updated_at       DateTime     @updatedAt
+  projects         Project[]
+  activities       Activity[]
+
+  @@map("income_estimates")
+}
+
+model Project {
+  id               String         @id @default(uuid())
+  title            String         @db.VarChar(255)
+  category         Category
+  income_source    IncomeSource?
+  allocated_budget Decimal        @db.Decimal(12, 2)
+  created_at       DateTime       @default(now())
+  updated_at       DateTime       @updatedAt
+  income_estimate  IncomeEstimate? @relation(fields: [income_source], references: [source])
+  activities       Activity[]
+  expenses         Expense[]
+
+  @@map("projects")
+}
+
+model Activity {
+  id               String         @id @default(uuid())
+  project_id       String
+  title            String         @db.VarChar(255)
+  income_source    IncomeSource?
+  allocated_budget Decimal        @db.Decimal(12, 2)
+  created_at       DateTime       @default(now())
+  updated_at       DateTime       @updatedAt
+  project          Project        @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  income_estimate  IncomeEstimate? @relation(fields: [income_source], references: [source])
+  expenses         Expense[]
+
+  @@map("activities")
+}
+
+model Expense {
+  id             String              @id @default(uuid())
+  project_id     String
+  activity_id    String?
+  amount         Decimal             @db.Decimal(12, 2)
+  description    String              @db.Text
+  disbursed_date DateTime            @db.Date
+  created_at     DateTime            @default(now())
+  project        Project             @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  activity       Activity?           @relation(fields: [activity_id], references: [id], onDelete: SetNull)
+  attachments    ExpenseAttachment[]
+
+  @@map("expenses")
+}
+
+model ExpenseAttachment {
+  id                String   @id @default(uuid())
+  expense_id        String
+  file_name         String
+  drive_file_id     String
+  drive_folder_id   String
+  drive_folder_name String
+  created_at        DateTime @default(now())
+  expense           Expense  @relation(fields: [expense_id], references: [id], onDelete: Cascade)
+
+  @@map("expense_attachments")
+}
